@@ -69,6 +69,6 @@ Server and load clients share a process, so CPU and memory include both. These s
 - Vite reports its standard large-chunk warning for the lazy-loaded Phaser game bundle (~1.22 MB minified / 337 KB gzip). The game loads on demand. Zod also emits two upstream comment-annotation warnings; the build completes. No warnings were hidden.
 - Rooms, queues, guest identities, history, and leaderboards are bounded, single-process, in-memory data and reset on server restart. Permanent accounts, friends, achievements, tournaments, monetization, databases, touch gameplay, and distributed hosting are future work. Only Neon Arena is playable.
 - Explicitly leaving a game forfeits winner eligibility but retains the participant's result in history. Disconnects reserve membership for 15 seconds; server restart cannot recover it.
-- Generated source remains local and uncommitted in the originally empty repository. Nothing was pushed to GitHub or deployed. Export the prepared source archive or review and commit/push the project before expecting a remote clone to contain it.
+- The application source was subsequently committed and pushed to GitHub on `main`; remote branch verification succeeded. No public application deployment or cloud snapshot publication is claimed.
 
 The next implementation phase is native Windows acceptance and sustained/network-condition testing, followed by durable authentication and persistence before a public release. See `SECURITY.md` and `PERSISTENCE.md` for that boundary.

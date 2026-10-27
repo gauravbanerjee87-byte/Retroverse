@@ -6,23 +6,19 @@ RetroVerse uses React, TypeScript, Vite, Phaser 3, Node.js, `ws`, Zod, Vitest, a
 
 ## Quick start on Windows 11
 
-The generated application currently lives in `/workspace/Retroverse`; it has not been pushed to GitHub. The selected GitHub repository was empty when this implementation began. Export or copy the prepared project to Windows first; cloning the unchanged remote will not retrieve these files.
-
-Install Node.js **24 LTS** (minimum supported version: 22.12) from [nodejs.org](https://nodejs.org/), reopen PowerShell, and extract an archive of the prepared project:
+The source is available on GitHub on the `main` branch. Install Node.js **24 LTS** (minimum 22.12), reopen PowerShell, and clone into a fresh directory:
 
 ```powershell
 New-Item -ItemType Directory -Force D:\tools | Out-Null
-New-Item -ItemType Directory -Force D:\tools\retroverse | Out-Null
-Expand-Archive -Path "$env:USERPROFILE\Downloads\RetroVerse.zip" -DestinationPath D:\tools\retroverse
+Set-Location D:\tools
+git clone --branch main https://github.com/gauravbanerjee87-byte/Retroverse.git retroverse
 Set-Location D:\tools\retroverse
-node --version
-npm --version
 npm ci
-Copy-Item .env.example .env
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 npm run dev
 ```
 
-Use the actual archive filename in place of `RetroVerse.zip`. Put its root `package.json` directly in `D:\tools\retroverse`; if the archive contains a wrapper folder, move its contents into that directory before running npm. After the generated source has been committed and pushed, Git cloning is an alternative described in [Windows setup](docs/WINDOWS_SETUP.md). `npm install` is also available when deliberately updating the lockfile; use `npm ci` for a reproducible checkout. npm 10 or newer is required. Copy `.env` only once; do not overwrite local changes.
+Alternatively, use GitHub's **Code → Download ZIP** and extract the folder so its `package.json` is directly inside `D:\tools\retroverse`. npm 10 or newer is required. Preserve any existing local configuration.
 
 Open **http://localhost:5173**. The backend health endpoint is **http://localhost:3001/api/health**. The Vite development server proxies `/api` and `/ws` to the backend; both processes start with `npm run dev` and stop with Ctrl+C.
 

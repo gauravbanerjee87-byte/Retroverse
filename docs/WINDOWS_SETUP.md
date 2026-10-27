@@ -16,20 +16,7 @@ If PowerShell blocks `npm.ps1`, use `npm.cmd` and `npx.cmd` in the commands belo
 
 ## 2. Get the project
 
-The prepared code currently lives in the cloud checkout `/workspace/Retroverse` and has not been pushed. The selected remote was empty at inspection. Export/download the prepared project first; cloning the unchanged remote will not retrieve the application.
-
-For an exported archive named `RetroVerse.zip` in Downloads:
-
-```powershell
-New-Item -ItemType Directory -Force D:\tools\retroverse | Out-Null
-Expand-Archive -Path "$env:USERPROFILE\Downloads\RetroVerse.zip" -DestinationPath D:\tools\retroverse
-Set-Location D:\tools\retroverse
-Test-Path .\package.json
-```
-
-Use your actual archive filename. Extract so `D:\tools\retroverse\package.json` exists. Avoid an accidental wrapper folder such as `retroverse\Retroverse-main`; move its contents to the intended root if needed. All following commands run in `D:\tools\retroverse`.
-
-After the owner commits and pushes the generated project, cloning is an alternative for a fresh directory:
+The source is published on GitHub's `main` branch. Clone it into a fresh directory using Git for Windows, or use **Code → Download ZIP** on the repository and extract its contents into `D:\tools\retroverse`.
 
 ```powershell
 New-Item -ItemType Directory -Force D:\tools | Out-Null
