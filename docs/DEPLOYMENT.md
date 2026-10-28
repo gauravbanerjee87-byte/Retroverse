@@ -47,6 +47,10 @@ Keep installed runtime dependencies available to the server. The server bundle i
 - Run the process under a service manager. Allow graceful termination time before killing it. All in-memory rooms and identities are lost on restart, even with a graceful shutdown.
 - Pin Node and use `npm ci` with the committed lockfile. Review `npm audit --omit=dev` and patch advisories deliberately.
 
+## Game-aware operational limits
+
+The catalogue has 25 original 2D game engines with different player limits and snapshot sizes. Do not infer their resource needs from the original projectile-arena load probe. Measure board/tile-heavy games, four-player social queues, per-game bandwidth, event-loop delay, and long-running cleanup. Server history/leaderboard filters use stable `gameId` values. Deploy client, server, shared schema, and catalogue as one compatible release; titles may change while stable IDs remain unchanged.
+
 ## Scaling and persistence
 
 This design supports one authoritative backend process. A second process has a different session/room map. Random load balancing breaks reconnect and matchmaking expectations. Scaling requires a room-aware router or sticky assignment, shared identity, coordinated queues, ownership of simulations, and measured cross-instance behavior. Redis is justified only when implementing that coordination; it is not needed for the local MVP.

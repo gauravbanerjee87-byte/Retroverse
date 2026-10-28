@@ -14,6 +14,7 @@ export interface ConnectionView {
   error: string | null;
   latency: number | null;
   hud: MatchState | null;
+  secret: string | null;
 }
 export function recentGames(): string[] {
   try {
@@ -37,6 +38,7 @@ class Network {
     error: null,
     latency: null,
     hud: null,
+    secret: null,
   };
   listeners = new Set<() => void>();
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -105,21 +107,30 @@ class Network {
             hud: null,
             queued: null,
             error: null,
+            secret: null,
           });
           break;
         case 'room':
           this.state = message.room.match;
-          this.publish({ room: message.room, queued: null, hud: this.state, error: null });
+          this.publish({
+            room: message.room,
+            queued: null,
+            hud: this.state,
+            error: null,
+            ...(message.room.status === 'waiting' ? { secret: null } : {}),
+          });
           if (message.room.status === 'playing') {
             const recent = recentGames();
+            const gameId = message.room.gameId || 'neon-arena';
             localStorage.setItem(
               'retroverse.recent',
-              JSON.stringify(
-                ['neon-arena', ...recent.filter((id) => id !== 'neon-arena')].slice(0, 8),
-              ),
+              JSON.stringify([gameId, ...recent.filter((id) => id !== gameId)].slice(0, 25)),
             );
           }
           location.hash = '#/room';
+          break;
+        case 'secret':
+          this.publish({ secret: message.text });
           break;
         case 'state':
           this.state = message.state;
@@ -134,12 +145,12 @@ class Network {
           break;
         case 'left':
           this.state = null;
-          this.publish({ room: null, hud: null, queued: null });
+          this.publish({ room: null, hud: null, queued: null, secret: null });
           location.hash = '#/library';
           break;
         case 'queued':
           this.publish({ queued: message.position, error: null });
-          location.hash = '#/matchmaking';
+          if (!location.hash.startsWith('#/matchmaking')) location.hash = '#/matchmaking';
           break;
         case 'queue_cancelled':
           this.publish({ queued: null });

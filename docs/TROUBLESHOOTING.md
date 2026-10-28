@@ -45,9 +45,15 @@ If health fails, inspect the backend terminal and port. If health succeeds, open
 
 ## Cannot start/join a room
 
-Private matches need at least two participants and every participant Ready. Only the current host can start/rematch. Invitations are uppercase 12-character hex codes; full, expired, nonexistent, and already-playing rooms cannot admit a new guest. Leave an existing room or cancel the queue before trying a conflicting action. Reload reconnects only while the original in-memory session remains valid. Server restarts require a new room.
+Private matches need the selected game's minimum participants and every participant Ready. Hidden Signal needs four; most titles need two. Capacity also follows the game's maximum. Only the current host can start/rematch. Invitations are uppercase 12-character hex codes; full, expired, nonexistent, and already-playing rooms cannot admit a new guest. Leave an existing room or cancel the queue before trying a conflicting action. Public matching groups only the same game; check that every guest selected the same title and mode. An invitation resolves the game from its room code even if another title was selected on the join screen. Reload reconnects only while the original in-memory session remains valid. Server restarts require a new room.
 
 Use an independent private window/browser for another participant. Duplicating a tab can copy session storage; two clients holding the same resume token are one guest identity, not two players.
+
+## Wrong controls, missing role, or action not accepted
+
+Read the selected game's details and the live hint beside the canvas. The same primary action has different meanings: roll, punch, place bomb, jump, drop, serve, shoot, or interact. Dice and social votes require a fresh action and legal choice; holding the mouse does not automatically choose a token. Pool/golf only accept the active player's shot while balls are stationary, with power based on pointer distance. Hidden Signal's role is a private message shown only to that guest; public state deliberately omits the saboteur identity. Reconnect with the same temporary token to receive your role again while the session survives.
+
+If a game appears under an older internal identifier such as `neon-arena`, use its displayed title **Prism Skirmish** in the UI; stable IDs are retained for compatibility. No commercial game executable, ROM, 3D assets, or external emulator is needed.
 
 ## No movement or sound
 

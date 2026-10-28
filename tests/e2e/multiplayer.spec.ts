@@ -12,7 +12,7 @@ async function guest(browser: Browser, name: string) {
   return { context, page, observed };
 }
 
-test('home, library filters, planned-game status, and mobile navigation', async ({ page }) => {
+test('home, full library search, original names, and mobile navigation', async ({ page }) => {
   const observed = observeClient(page);
   await page.goto('/');
   await expect(
@@ -22,11 +22,11 @@ test('home, library filters, planned-game status, and mobile navigation', async 
   await expect(page.getByRole('heading', { name: /library/i })).toBeVisible();
   await page.getByRole('searchbox').fill('no-such-game-91827');
   await expect(page.getByText(/no games/i)).toBeVisible();
-  await page.getByRole('searchbox').fill('Neon');
-  await expect(page.getByRole('heading', { name: 'Neon Arena', exact: true })).toBeVisible();
+  await page.getByRole('searchbox').fill('Prism');
+  await expect(page.getByRole('heading', { name: 'Prism Skirmish', exact: true })).toBeVisible();
   await page.getByRole('searchbox').fill('Night Circuit');
   await expect(page.getByRole('heading', { name: 'Night Circuit', exact: true })).toBeVisible();
-  await expect(page.getByText('IN THE PIPELINE', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('PLAYABLE NOW', { exact: true }).first()).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/settings');
   await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible();

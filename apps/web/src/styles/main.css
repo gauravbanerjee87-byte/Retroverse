@@ -2192,3 +2192,66 @@ td small {
   animation: none !important;
   transition: none !important;
 }
+
+/* Game catalogue and controls share the same keyboard-visible arcade UI. */
+.priority-tag {
+  color: #ffe5a1;
+  border-color: #dcb86b80;
+  background: #30251dd9;
+}
+.game-rules {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.game-rules strong {
+  color: #d2f6fa;
+}
+.game-rules .instruction-list {
+  padding-left: 16px;
+}
+.game-action-buttons {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+}
+.game-action-buttons .button {
+  width: 100%;
+  padding: 10px 8px;
+  font-size: 11px;
+}
+.token-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.private-role {
+  background: #271f39;
+  border: 1px solid #b39ae566;
+  padding: 12px;
+  margin: 12px 0;
+  border-radius: 8px;
+}
+.private-role p {
+  color: #f0d6ff;
+}
+.matchmaking-panel > label {
+  display: block;
+  text-align: left;
+}
+.matchmaking-panel > label select {
+  width: 100%;
+}
+.filter-extras {
+  flex-wrap: wrap;
+}
+.filter-extras > label {
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  .filter-extras select {
+    max-width: 210px;
+  }
+  .game-title h1 {
+    font-size: 22px;
+  }
+}

@@ -34,8 +34,8 @@ describe('versioned protocol trust boundary', () => {
   });
 });
 describe('honest game catalogue', () => {
-  it('exposes one actual implementation and unique identities', () => {
-    expect(GAMES.filter((g) => g.status === 'playable').map((g) => g.id)).toEqual(['neon-arena']);
+  it('exposes implemented games with unique identities', () => {
+    expect(GAMES.every((g) => g.status === 'playable')).toBe(true);
     expect(new Set(GAMES.map((g) => g.id)).size).toBe(GAMES.length);
     for (const game of GAMES) {
       expect(game.minPlayers).toBeLessThanOrEqual(game.maxPlayers);

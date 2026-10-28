@@ -3,7 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocket, WebSocketServer } from 'ws';
-import { ARENA, parseClientMessage, PROTOCOL_VERSION } from '@retroverse/shared';
+import { ARENA, GAMES, parseClientMessage, PROTOCOL_VERSION } from '@retroverse/shared';
 import { readConfig, type ServerConfig } from './config/index';
 import { ProtocolError, RoomManager, type Session } from './rooms/manager';
 import { TokenBucket } from './security/limits';
@@ -96,8 +96,17 @@ export function createGameServer(overrides: Partial<ServerConfig> = {}) {
         });
         return;
       }
+      const gameId = url.searchParams.get('gameId');
+      if (
+        (url.pathname === '/api/leaderboard' || url.pathname === '/api/history') &&
+        gameId !== null &&
+        !GAMES.some((game) => game.id === gameId)
+      ) {
+        json(res, 400, { error: 'Invalid game identifier' });
+        return;
+      }
       if (url.pathname === '/api/leaderboard') {
-        json(res, 200, { entries: manager.leaderboard() });
+        json(res, 200, { entries: manager.leaderboard(gameId ?? undefined) });
         return;
       }
       if (url.pathname === '/api/history') {
@@ -108,7 +117,10 @@ export function createGameServer(overrides: Partial<ServerConfig> = {}) {
         }
         json(res, 200, {
           matches: manager.history
-            .filter((m) => !id || m.players.some((p) => p.id === id))
+            .filter(
+              (m) =>
+                (!gameId || m.gameId === gameId) && (!id || m.players.some((p) => p.id === id)),
+            )
             .slice(0, 50)
             .map((m) => ({ ...m, roomCode: '' })),
         });

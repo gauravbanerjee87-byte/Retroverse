@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Phaser from 'phaser';
-import { ARENA } from '@retroverse/shared';
+import { ARENA, GAMES } from '@retroverse/shared';
 import { network } from '../services/network';
 import { ArenaScene } from './scene';
 export default function Arena() {
   const view = useSyncExternalStore(network.subscribe, network.snapshot);
+  const game = GAMES.find((game) => game.id === (view.room?.gameId || 'neon-arena'))!;
   const container = useRef<HTMLDivElement>(null);
   const scene = useRef<ArenaScene | null>(null);
   const modal = useRef<HTMLDivElement>(null);
@@ -23,26 +24,42 @@ export default function Arena() {
     const arenaScene = new ArenaScene();
     scene.current = arenaScene;
     let game: Phaser.Game | undefined;
-    try {
-      game = new Phaser.Game({
-        type: Phaser.CANVAS,
-        parent: container.current,
-        width: ARENA.width,
-        height: ARENA.height,
-        backgroundColor: '#0b1423',
-        scene: arenaScene,
-        banner: false,
-        audio: { noAudio: true },
-        render: { antialias: false, pixelArt: true },
-        scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-        callbacks: { postBoot: () => setLoaded(true) },
-      });
-    } catch {
-      setGameError(
-        'This browser could not initialize the game canvas. Try a current version of Chrome, Edge, or Firefox.',
-      );
-    }
+    let cancelled = false;
+    // Defer creation so StrictMode can cancel its discarded effect before Phaser boots.
+    const boot = requestAnimationFrame(() => {
+      if (cancelled) return;
+      try {
+        game = new Phaser.Game({
+          type: Phaser.CANVAS,
+          parent: container.current,
+          width: ARENA.width,
+          height: ARENA.height,
+          backgroundColor: '#0b1423',
+          scene: arenaScene,
+          banner: false,
+          audio: { noAudio: true },
+          render: { antialias: false, pixelArt: true },
+          scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+          callbacks: {
+            postBoot: () => {
+              if (!cancelled) setLoaded(true);
+              else {
+                arenaScene.dispose();
+                game?.destroy(true);
+              }
+            },
+          },
+        });
+      } catch {
+        setGameError(
+          'This browser could not initialize the game canvas. Try a current version of Chrome, Edge, or Firefox.',
+        );
+      }
+    });
     return () => {
+      cancelled = true;
+      cancelAnimationFrame(boot);
+      arenaScene.dispose();
       game?.destroy(true);
       scene.current = null;
     };
@@ -106,6 +123,21 @@ export default function Arena() {
   const remaining = Math.max(0, Math.ceil((state.endsAt - now) / 1000));
   const finished = room.status === 'finished';
   const scores = [...state.players].sort((a, b) => b.score - a.score);
+  const scoreLabel = game.id === 'orbit-putt' ? 'Strokes' : state.info?.label || 'Knockouts';
+  const scoreValue = (score: number) => (game.id === 'orbit-putt' ? Math.abs(score) : score);
+  const turnName = state.players.find((player) => player.id === state.info?.turnId)?.name;
+  const myTurn = !state.info?.turnId || state.info.turnId === view.playerId;
+  const showHealth = ![
+    'homebound-dice',
+    'corner-pocket',
+    'orbit-putt',
+    'stack-surge',
+    'paddle-pulse',
+    'orbit-marbles',
+  ].includes(game.id);
+  function primary(choice?: number) {
+    scene.current?.controls?.action(choice);
+  }
   const winners = state.winnerIds
     .map((id) => state.players.find((p) => p.id === id)?.name)
     .filter(Boolean);
@@ -122,8 +154,10 @@ export default function Arena() {
     <section className="game-page" data-testid="game-screen">
       <div className="game-top">
         <div className="game-title">
-          <h1>Neon Arena</h1>
-          <span>DEATHMATCH · {room.code}</span>
+          <h1>{game.name}</h1>
+          <span>
+            {game.modes.join(' / ').toUpperCase()} · {room.code}
+          </span>
         </div>
         <div className="match-timer" aria-label={`${remaining} seconds remaining`}>
           {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}
@@ -137,7 +171,7 @@ export default function Arena() {
         </div>
       </div>
       <p className="desktop-warning">
-        Neon Arena requires a keyboard and mouse. The website works on mobile; touch gameplay is not
+        {game.controls.join(' and ')} controls. The website works on mobile; touch gameplay is not
         supported.
       </p>
       <div className="game-layout">
@@ -151,7 +185,9 @@ export default function Arena() {
             )}
             {me && me.health <= 0 && !finished && (
               <div className="respawn-notice">
-                Back in the game in {Math.max(1, Math.ceil((me.respawnAt - now) / 1000))}…
+                {me.respawnAt > 0
+                  ? `Back in the game in ${Math.max(1, Math.ceil((me.respawnAt - now) / 1000))}…`
+                  : 'Out this round — watch the remaining players.'}
               </div>
             )}
             {finished ? (
@@ -176,7 +212,7 @@ export default function Arena() {
                           {p.id === view.playerId ? ' (you)' : ''}
                         </span>
                         <strong>
-                          {p.score} K · {p.deaths} D
+                          {scoreValue(p.score)} {scoreLabel}
                         </strong>
                       </p>
                     ))}
@@ -256,7 +292,7 @@ export default function Arena() {
               <kbd>WASD</kbd> Move
             </span>
             <span>
-              <kbd>MOUSE</kbd> Aim + fire
+              <kbd>MOUSE</kbd> Aim · <kbd>SPACE</kbd> Action
             </span>
             <span>
               <kbd>ESC</kbd> Settings
@@ -272,11 +308,14 @@ export default function Arena() {
           <div className="panel">
             <h2>Your corner</h2>
             <strong style={{ fontSize: 13 }}>{me?.name || view.name}</strong>
-            <div className="hud-health">
-              <span style={{ width: `${me?.health ?? 0}%` }} />
-            </div>
+            {showHealth && (
+              <div className="hud-health">
+                <span style={{ width: `${me?.health ?? 0}%` }} />
+              </div>
+            )}
             <span className="muted">
-              {me?.health ?? 0} / 100 health · {me?.score ?? 0} knockouts
+              {showHealth && `${me?.health ?? 0} / 100 health · `}
+              {scoreValue(me?.score ?? 0)} {scoreLabel}
             </span>
             <h2 style={{ marginTop: 25 }}>The standings</h2>
             <ol className="score-list">
@@ -286,13 +325,99 @@ export default function Arena() {
                     <i className="score-dot" style={{ background: p.color }} />
                     {p.name}
                   </span>
-                  <strong>{p.score}</strong>
+                  <strong>{scoreValue(p.score)}</strong>
                 </li>
               ))}
             </ol>
           </div>
+          <div className="panel game-rules">
+            <h2>Play your way</h2>
+            {state.info && (
+              <>
+                <strong>
+                  {state.info.phase ? state.info.phase.replaceAll('-', ' ') : game.name}
+                </strong>
+                <p role="status">{state.info.message}</p>
+                {state.info.round !== undefined && (
+                  <p>
+                    {game.id === 'homebound-dice'
+                      ? state.info.round
+                        ? `Die: ${state.info.round}`
+                        : 'Roll to begin'
+                      : `Round ${state.info.round}`}
+                  </p>
+                )}
+              </>
+            )}
+            {turnName && (
+              <p className={myTurn ? 'ready-label' : 'muted'}>
+                {myTurn ? 'Your turn' : `${turnName}’s turn`}
+              </p>
+            )}
+            {view.secret && (
+              <div className="private-role" role="status">
+                <strong>Your private role</strong>
+                <p>{view.secret}</p>
+                <small>Only your guest receives this role. Keep it private.</small>
+              </div>
+            )}
+            {!finished && (
+              <div className="game-action-buttons">
+                <button
+                  className="button secondary"
+                  disabled={!loaded || !myTurn || paused || exit}
+                  onClick={() => primary()}
+                >
+                  {game.id === 'homebound-dice'
+                    ? 'Roll dice'
+                    : game.id === 'corner-pocket' || game.id === 'orbit-putt'
+                      ? 'Take shot at cursor'
+                      : 'Primary action (Space)'}
+                </button>
+                {game.id === 'homebound-dice' && (
+                  <div className="token-actions" aria-label="Choose a token">
+                    {[0, 1, 2, 3].map((choice) => (
+                      <button
+                        key={choice}
+                        className="button secondary"
+                        disabled={!myTurn || paused || exit}
+                        onClick={() => primary(choice)}
+                      >
+                        Token {choice + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {game.id === 'hidden-signal' && (
+                  <>
+                    <button className="button secondary" onClick={() => primary(8)}>
+                      Call meeting
+                    </button>
+                    <p className="muted">During a meeting, vote for a player:</p>
+                    {state.players.map((player, index) => (
+                      <button
+                        className="button secondary"
+                        key={player.id}
+                        onClick={() => primary(index)}
+                      >
+                        Vote {player.name}
+                      </button>
+                    ))}
+                    <button className="button secondary" onClick={() => primary(9)}>
+                      Skip vote
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+            <ul className="instruction-list">
+              {game.instructions.map((instruction) => (
+                <li key={instruction}>{instruction}</li>
+              ))}
+            </ul>
+          </div>
           <div className="panel">
-            <h2>In the arena</h2>
+            <h2>Match events</h2>
             {state.kills.length ? (
               <ul className="kill-feed">
                 {state.kills
@@ -305,7 +430,7 @@ export default function Arena() {
                   ))}
               </ul>
             ) : (
-              <p className="muted">A clean slate. Make the first shot count.</p>
+              <p className="muted">Match actions and objectives are decided by the server.</p>
             )}
           </div>
         </aside>

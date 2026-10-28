@@ -24,6 +24,9 @@ export interface InputState {
   right: boolean;
   angle: number;
   fire: boolean;
+  targetX?: number;
+  targetY?: number;
+  choice?: number;
 }
 export interface ArenaPlayer {
   id: string;
@@ -53,7 +56,43 @@ export interface KillEvent {
   victim: string;
   at: number;
 }
+export interface WorldObject {
+  id: string;
+  kind:
+    | 'wall'
+    | 'target'
+    | 'pickup'
+    | 'hazard'
+    | 'ball'
+    | 'zone'
+    | 'tile'
+    | 'trail'
+    | 'bomb'
+    | 'finish'
+    | 'marker';
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  radius?: number;
+  color?: string;
+  label?: string;
+  value?: number;
+  ownerId?: string;
+}
+export interface GameInfo {
+  label: string;
+  message: string;
+  phase?: string;
+  turnId?: string;
+  round?: number;
+  goal?: number;
+  teams?: Record<string, string>;
+}
 export interface MatchState {
+  gameId?: string;
+  objects?: WorldObject[];
+  info?: GameInfo;
   tick: number;
   players: ArenaPlayer[];
   bullets: Bullet[];
@@ -69,6 +108,7 @@ export interface RoomPlayer {
   connected: boolean;
 }
 export interface RoomView {
+  gameId?: string;
   code: string;
   hostId: string;
   visibility: 'private' | 'public';
@@ -78,6 +118,7 @@ export interface RoomView {
   match: MatchState | null;
 }
 export interface MatchRecord {
+  gameId?: string;
   id: string;
   roomCode: string;
   endedAt: number;

@@ -7,7 +7,7 @@ RetroVerse is a local guest-session MVP, not an authenticated public gaming serv
 - Strict runtime schemas validate every client message before dispatch. The protocol version and action lifecycle are checked.
 - Server-issued guest identity determines room membership and host privileges; clients cannot select another member's ID to perform an action.
 - Secure random room invitations and independent random resume tokens reduce guessing. Invitations grant room access; resume tokens grant temporary identity access.
-- Position, hits, damage, health, scores, and winners are calculated by the authoritative server.
+- Position, hits, damage, health, scores, winners, dice rolls, turn ownership, and legal game actions are calculated by the authoritative server. Optional pointer coordinates and choice indices are intent, not authority. Game-specific room capacities and matching compatibility are enforced independently of UI controls.
 - WebSocket payload/connection/rate limits, heartbeat handling, bounded collections, cleanup, and slow-client/backpressure handling constrain abuse and resource use.
 - Production origin checks compare the browser's `Origin` to an explicit allowlist. Configure exact scheme, hostname, and port.
 - Safe client errors omit stack traces; structured server logs aid diagnosis. Avoid logging raw incoming messages or resume tokens.
@@ -30,6 +30,12 @@ The current limits are:
 | WebSocket heartbeat           | Ping every 15 seconds; terminate missing responses |
 
 The canonical values live in the backend source. IP limits use the direct socket address; behind a proxy, many users may share that address. A public deployment needs an explicit trusted-proxy strategy before relying on per-user IP limits. Origin checking is a browser defense, not authentication: a nonbrowser client can forge an allowed origin.
+
+## Hidden information and public score data
+
+Hidden Signal assigns its saboteur role on the server. The `secret` message is sent only to its intended guest, including on reconnect. Never include role identity in `state`, room views, public history, leaderboard, logs, or analytics. A participant can still disclose their own role by screen sharing or collusion; there is no anti-collusion or encrypted peer secrecy system. The browser's DOM and session storage are readable by that browser's user, which is why authorization must remain on the server.
+
+History/leaderboards can be filtered by `gameId`; they are public prototype statistics, not private account data. The legacy aggregate `kills` field represents score outside the projectile arena and should not be used to compare unlike games. Room codes are redacted from public history responses. Display names remain public labels.
 
 ## Secrets and browser storage
 

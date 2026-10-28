@@ -1,6 +1,6 @@
 # Architecture
 
-RetroVerse is an npm-workspaces TypeScript monorepo. One Node process owns live multiplayer state; a React application presents the website, and Phaser renders the active game. Shared schemas connect the two.
+RetroVerse is an npm-workspaces TypeScript monorepo. One Node process owns live multiplayer state; a React application presents the website, and Phaser renders the active game. The 25 titles use one projectile arena plus four arcade engine families: racing/platforming (7), action (7), casual (6), and tabletop/social (4). Shared schemas connect the two.
 
 ```text
 Browser: React routes / settings / lobby / HUD
@@ -11,21 +11,21 @@ Browser: React routes / settings / lobby / HUD
               |
     Guest sessions / rooms / FIFO queue
               |
-    Authoritative Neon Arena simulation (25 Hz)
+    Selected authoritative game engine (25 Hz)
               |
     Bounded in-memory results and leaderboard
 ```
 
 ## Boundaries
 
-- `packages/shared/src/protocol.ts` defines client messages and strict runtime validation. `game-types.ts` defines snapshots, arena rules, and room views. `catalogue.ts` defines metadata and honest availability.
-- `apps/server` owns connection/session identity, validation, authorization, rooms, ready state, queue assignments, physics, hits, scores, match completion, and cleanup. The client sends intent rather than positions or outcomes.
+- `packages/shared/src/protocol.ts` defines client messages and strict runtime validation. `game-types.ts` defines snapshots, the 960×600 world, world-object rendering contracts, game hints, and room views. `catalogue.ts` defines metadata and honest availability.
+- `apps/server` owns connection/session identity, validation, authorization, rooms, ready state, queue assignments, selected-game simulation, physics, hits, legal turns/actions, scores, match completion, and cleanup. The client sends intent rather than positions or outcomes.
 - `apps/web` owns navigation, forms, preferences, connection status, input collection, interpolation, and rendering. Gameplay updates go to Phaser rather than requiring a full React tree update on each simulation tick.
 - `tests/e2e` tests actual browser participants. Server tests exercise real sockets as well as deterministic simulation functions.
 
 ## Browser navigation and preferences
 
-The React application uses hash routes: `#/`, `#/library`, `#/game/neon-arena`, `#/room`, `#/matchmaking`, `#/profile`, `#/history`, `#/leaderboards`, and `#/settings`. Unknown routes show a not-found page. An invitation's `?room=CODE` query opens the room form. Display name, mute, reduced effects, and recent-game IDs are local browser preferences; the guest token and player ID use tab-scoped session storage. Saving a changed name reconnects the guest session.
+The React application uses hash routes: `#/`, `#/library`, `#/game/<game-id>`, `#/room`, `#/matchmaking`, `#/profile`, `#/history`, `#/leaderboards`, and `#/settings`. Unknown routes show a not-found page. An invitation's `?room=CODE` query opens the room form. Display name, mute, reduced effects, and recent-game IDs are local browser preferences; the guest token and player ID use tab-scoped session storage. Saving a changed name reconnects the guest session.
 
 ## Deployment topology
 
@@ -33,7 +33,13 @@ Development uses Vite on port 5173 and Node on 3001. Vite forwards `/api` and `/
 
 ## Lifecycle
 
-A client introduces a protocol version and display name. The server creates a random guest identity and bearer resume token. A private room transitions `waiting → playing → finished`; a host rematch returns it to `waiting`. Private starts require at least two connected, ready players. Public matching uses FIFO ordering and starts a two-player room automatically. Disconnect grace allows a returning guest to reclaim its room; explicit leave removes membership immediately. Reconnect and room expiry are bounded and do not survive a process restart.
+A client introduces a protocol version and display name. The server creates a random guest identity and bearer resume token. A private room transitions `waiting → playing → finished`; a host rematch returns it to `waiting`. Private starts require the selected game's minimum connected, ready players. Public matching uses FIFO ordering within each game and starts its minimum-sized group automatically: two for most titles, four for Hidden Signal. Room creation validates game-specific capacities; joins resolve the game from the room code. Disconnect grace allows a returning guest to reclaim its room; explicit leave removes membership immediately. Reconnect and room expiry are bounded and do not survive a process restart.
+
+## Rendering and private state
+
+The Phaser scene is a universal 2D renderer. The server publishes typed `objects` (walls, targets, pickups, hazards, balls, zones, tiles, trails, bombs, finishes, and markers), player/projectile state, plus `info` for score labels, phase, turn, round, teams, and live hints. The scene chooses vehicle, character, cell, or board rendering from the stable game ID. The camera fits a fixed logical 960×600 world to the available canvas; it is not a 3D engine or a claim of separate bespoke art pipelines for every title.
+
+Hidden Signal's role text uses a unicast `secret` message via the engine's `privateInfo(playerId)` hook. Public snapshots and history must not contain the saboteur identity. Reconnection reissues the guest's private role to that guest only. Keep secret-role handling separate from shared render state when adding hidden-information games.
 
 ## Extension points
 

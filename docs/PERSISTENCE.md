@@ -15,6 +15,8 @@ No database is used by the current MVP. This is a design for a later authenticat
 | `reports`            | Reporter/reported-user/match references, category, moderation status, timestamp; restricted access                                            |
 | `account_settings`   | One row per user, preference schema version, privacy choices                                                                                  |
 
+Store stable `game_id` and the rule-version on each match; the 25 titles have different score meanings and win conditions. Rank within game/mode/season rather than adding unlike scores. Hidden roles are transient secrets and should not be exposed through a public replay/history table.
+
 Persist completed match and participant rows in a transaction using a server-generated unique match ID, so retries cannot duplicate scores. Never accept client-submitted authoritative outcomes. Add foreign keys, nonnegative score checks, status enums/check constraints, and explicit deletion behavior. Profile display names need not be unique; account identity must be independently authenticated.
 
 Migration files should be committed, reviewed, applied by an explicit deployment step, and tested on a disposable database plus a copy of representative data. Destructive migrations require backup and a rollback/recovery plan. Test backup restoration rather than assuming snapshots are usable.

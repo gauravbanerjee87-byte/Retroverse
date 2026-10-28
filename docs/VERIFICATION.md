@@ -1,74 +1,69 @@
 # Verification report
 
-Observed on 27 October 2026 in the Linux cloud workspace `/workspace/Retroverse`, using Node **24.19.0**, npm **11.9.0**, and system Chromium **154.0.8037.57**. This verifies the local guest-session development workflow. It does not establish native Windows execution, public-launch security, publication, or fresh-task restoration.
+Observed on **28 October 2026** in the Linux cloud workspace, with Node **24.19.0**, npm **11.9.0**, and system Chromium **154**. This report supersedes the original single-game checkpoint. The catalogue now contains 25 original, compact 2D multiplayer games; each has an authoritative simulation and a matching Phaser rendering/input path. See [GAME_CATALOGUE.md](GAME_CATALOGUE.md) for the exact implemented rules and limitations.
 
 ## Executed checks
 
-| Check                                                                    | Observed result                                                                      |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| `npm ci --cache /workspace/.npm-cache --no-fund --no-audit`              | Clean lockfile install succeeded: 220 packages; no manifest/lockfile repair required |
-| `npm run typecheck`                                                      | Passed all workspaces, tooling, load utility, and browser tests in strict mode       |
-| `npm run lint`                                                           | Passed                                                                               |
-| `npm run format:check`                                                   | Passed                                                                               |
-| `npm test`                                                               | **34 passed**, 4 files, no failed/skipped tests; final run 2.72 seconds              |
-| `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e` | **4 passed**, no failed/skipped tests; final run 26.5 seconds                        |
-| `npm run build`                                                          | React/Vite frontend and esbuild Node backend both built successfully                 |
-| `npm run test:load`                                                      | 2-, 4-, and 8-client runs completed with zero protocol errors                        |
-| `npm audit --cache /workspace/.npm-cache --audit-level=low`              | **0 known vulnerabilities** for this lockfile at verification time                   |
+| Check                                                                    | Observed result                                                       |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `npm run typecheck`                                                      | Passed all workspaces, load tooling, and browser tests in strict mode |
+| `npm run lint`                                                           | Passed                                                                |
+| `npm run format:check`                                                   | Passed                                                                |
+| `npm test`                                                               | **151 passed**, 11 files, no skipped tests; final run 14.87 seconds   |
+| `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e` | **29 passed**, no failed/skipped tests; final full run 4.6 minutes    |
+| `npm run build`                                                          | Frontend and bundled Node backend built successfully                  |
+| `npm run test:load`                                                      | 2-, 4-, and 8-client probes completed with zero protocol errors       |
+| `npm audit --cache /workspace/.npm-cache --audit-level=low`              | **0 known vulnerabilities** for the current lockfile                  |
 
-Browser tests use independent contexts, not shared in-memory client objects. They cover homepage/library search and honest planned-game labels, mobile layout, private create/join/readiness/start, movement observed by the other browser, projectile synchronization, server-timed completion/results, rematch/leave, public cancellation/pairing/completion, invitation URL joining, and reload reconnection into the same guest identity and room. The final run asserted no browser page exceptions or console errors.
+No new dependencies or lockfile changes were required for this expansion. Existing pinned dependencies were reused. Native Windows 11 execution and remote GitHub Actions outcomes have not been verified here.
 
-Unit and real-WebSocket integration tests cover schemas, room code generation, membership/capacity/host authorization, duplicate queues and cancellation, disconnected/expired sessions, room expiry and empty cleanup, stale inputs, boundaries/cover/projectiles, damage/scoring/respawn/winners, malformed/binary/oversize messages, rate/connection limits, origin checks, session takeover, private-code redaction, and graceful shutdown.
+## Gameplay and transport evidence
+
+The unit/rules suite covers each of the four engine families, plus the existing projectile arena. It exercises ordered race gates and laps, motorcycle combat, city checkpoints/deliveries, boosts, gravity/jumps, gallery waves/civilians/reload, cooperative wins and failed missions, tactical rounds, stealth and extraction, fighter combos/blocking, bomb chains/destructible cover, maze objectives, falling-block rotation/row clears, snake growth/body collisions, marble matching, paddle rebounds/goals, cell growth, legal dice moves/captures/exact home, pool physics/fouls/legal eight-ball finishes, hidden roles/tasks/voting, and golf turns/physics/scoring.
+
+Motorcycle races and rooftop courses were completed with real control sequences, without teleporting to the finish. Tests also exercise input expiry/sequence ordering, role privacy, turn authorization, disconnects, forfeits, room capacities, compatibility queues, cleanup, payload/rate/origin limits, score/history filters, and shutdown.
+
+Every one of the 25 games was exercised through real independent WebSocket connections: room creation, joining, readiness, start, input acknowledgment, state broadcast, completion, and history. Late input after completion is also tested for every game: it cannot mutate finished state or produce a spurious match error. Membership authorization and transport limits remain enforced.
+
+The browser matrix uses independent browser contexts for each guest, including four for Hidden Signal. For each game it checks selection, private-room launch, the game-specific canvas/HUD, input acknowledged on the other browser's snapshot, consistent authoritative results, and absence of browser/protocol errors. Additional tests cover search/mobile layout, actual cross-client movement and firing, rematch/leave, public matchmaking/cancellation, invitations, and reload identity recovery. Engine tests establish rules; browser launch/control/result checks are not a claim that every strategy or every complete human-played course has been explored.
 
 ## Compiled application smoke check
 
-Started the built `apps/server/dist/index.js` directly on loopback port 3012 in local development security mode, with a five-second match duration and that exact origin allowlisted. This used the built assets, without Vite or source watchers.
+Started the built Node server on loopback port 3012 with a five-second test match timer and explicit local origin. Vite and source watchers were not involved.
 
-- Health returned HTTP 200 and `{"status":"ok","protocol":1}`.
-- The frontend document, JavaScript, CSS, and original favicon loaded successfully; security headers were present.
-- Two independent Chromium guests joined public matchmaking and finished an actual game.
-- The leaderboard contained both participants; history contained one completed match with the invitation code redacted.
-- Both guests' profile pages displayed their own completed match.
+- Health returned HTTP 200 with `{"status":"ok","protocol":1}`.
+- The frontend HTML, JavaScript, CSS, and original favicon loaded; security headers were present.
+- Real browser guests publicly matched and finished **Asphalt Rivals (2 players)**, **Hidden Signal (4 players)**, and **Corner Pocket (2 players)**.
+- Each game's filtered leaderboard contained its participants and history contained its completed record with the invite code redacted.
 - No page exceptions occurred. SIGTERM stopped the compiled server with exit code 0.
+- Seven genre-specific multiplayer screenshots were inspected: motorcycles, falling blocks, pool, dice, social deduction, gallery shooting, and fighting. Local diagnostics are ignored under `.local/`.
 
-Desktop (1440 pixels wide) and mobile (390 pixels wide) homepage screenshots were also inspected. Local screenshots and the smoke result are under ignored `.local/`; they are not required source files.
+## Boundedness and local load observations
 
-## Measured local workload
+Every game was simulated for 16 seconds at its advertised maximum player count. Checked player values remained finite, object counts remained below 1,600, and serialized snapshots remained below 256 KiB. This checks boundedness, not sustained production capacity.
 
-Each run sent roughly 25 input messages/second/player for four seconds in one room. Every client received 50 snapshots (~12.5/second).
+The network load utility separately exercises Prism Skirmish with about 25 input messages/second/player for four seconds per run:
 
-| Players | Inputs | Received bytes, all clients | p95 local ping RTT | Process CPU | RSS    | Protocol errors |
-| ------- | ------ | --------------------------- | ------------------ | ----------- | ------ | --------------- |
-| 2       | 198    | 129,317                     | 1 ms               | 117 ms      | 80 MiB | 0               |
-| 4       | 396    | 532,594                     | 1 ms               | 154 ms      | 86 MiB | 0               |
-| 8       | 792    | 1,998,556                   | 3 ms               | 140 ms      | 88 MiB | 0               |
+| Players | Inputs | Snapshots/client | p95 local ping RTT | Whole-process CPU | RSS    | Protocol errors |
+| ------- | ------ | ---------------- | ------------------ | ----------------- | ------ | --------------- |
+| 2       | 196    | 49               | 2 ms               | 114 ms            | 83 MiB | 0               |
+| 4       | 396    | 50               | 2 ms               | 124 ms            | 87 MiB | 0               |
+| 8       | 792    | 50               | 1 ms               | 120 ms            | 89 MiB | 0               |
 
-Server and load clients share a process, so CPU and memory include both. These short loopback runs do not certify sustained capacity, remote latency, many rooms, or thousands of users. Simulation targets 25 Hz; bounded full JSON snapshots broadcast every second simulation tick. Delta compression and local movement prediction are not implemented. Remote rendering interpolates authoritative state.
+Server and load clients share a process, so CPU/RSS include both. These short loopback results do not certify many rooms, high latency, sustained capacity, or every engine's network cost. Simulation targets 25 Hz and broadcasts bounded full JSON snapshots at roughly 12.5 Hz. Delta compression and local movement prediction are not implemented; the renderer interpolates authoritative positions.
 
-## Phase checkpoints
+## Browser failures found and resolved
 
-1. **Foundation:** npm workspaces, strict TypeScript, shared schemas/registry, config/logging, and health endpoint implemented; shared compilation and 12 shared tests passed.
-2. **Multiplayer infrastructure:** real WebSockets, guest resume, private rooms, FIFO public queue, validation/limits, and cleanup implemented; real-socket integration suite passed.
-3. **First playable game:** authoritative Neon Arena plus Phaser Canvas rendering/input, damage, respawn, timer, winners, sounds, and rematch implemented; 8 simulation tests and two-browser gameplay checks passed.
-4. **Frontend:** all MVP routes, searchable/filterable library, invitations/lobbies, queue, game HUD/results, guest profile/history/leaderboard/settings, responsive layout, error states, and keyboard focus implemented; browser journeys passed.
-5. **Quality:** 34 unit/integration tests and 4 browser tests passed; type/lint/format/audit/load/build checks passed. Review findings were corrected and rechecked.
-6. **Documentation and release preparation:** Windows/architecture/protocol/network/security/testing/deployment/troubleshooting/future-persistence guides and compiled build completed. Reusable cloud `install_script`, `start_skill`, and the actual checkout declaration were saved as a configuration draft. The user still needs to review/save environment settings and publish; neither operation is claimed completed.
+The first matrix was stopped after three failures and one interrupted case. React StrictMode's discarded Phaser mount left another input timer running: actual live probes measured about 50 input packets/second, triggering the unchanged server limits. Cancellable boot, explicit scene disposal, shutdown/destroy cleanup, and input listener/timer cleanup restored about 25/second with zero rate-limit errors in the same live probe. Four input regression tests also cover discarded mounts, short Space presses, outside-canvas coordinates, and listener destruction. StrictMode remains enabled.
 
-## Resolved setup and review findings
+A subsequent full browser run passed 27 cases and found two match-ending races: input already in flight could arrive after the final snapshot and produce `NO_MATCH`. The server now treats late input from an existing finished-room member as an immutable no-op. Waiting-room/nonmember input authorization and payload/rate validation are retained. The final all-game rerun passed all 29 cases with no browser exceptions, console errors, or protocol errors in the checked sessions. No assertion was disabled to hide the errors.
 
-- npm's original cache location was unwritable; using `/workspace/.npm-cache` fixed installation without weakening verification.
-- The first chosen Vite/Vitest tooling versions had advisories. Compatible updates removed all reported advisories. ESLint was updated to its supported major.
-- The initial backend bundler CLI failed. A small direct esbuild script replaced it, also removing a deprecated transitive build dependency. The corrected build and compiled startup passed.
-- Review found malformed upgrade requests leaking connection capacity and public history revealing private invite codes. Both were fixed and regression-tested.
-- Reconnect handling now clears stale views and stops takeover retry loops. A missing favicon caused browser console 404s during stricter checks; the original local favicon fixed them and the final suite passed without errors.
+## Remaining limits
 
-## Remaining limitations and next work
-
-- Native Windows 11, Edge, Firefox, long-running sessions, adverse network conditions, and public-host deployment have **not** been executed here. A Windows/Ubuntu CI workflow is supplied but has not run remotely.
-- Playwright's managed browser download returned HTTP 403 (`Domain forbidden`) from `cdn.playwright.dev`. Existing system Chromium was used successfully. On Windows, install the normal Playwright browser as documented; the system-browser override is optional.
-- Vite reports its standard large-chunk warning for the lazy-loaded Phaser game bundle (~1.22 MB minified / 337 KB gzip). The game loads on demand. Zod also emits two upstream comment-annotation warnings; the build completes. No warnings were hidden.
-- Rooms, queues, guest identities, history, and leaderboards are bounded, single-process, in-memory data and reset on server restart. Permanent accounts, friends, achievements, tournaments, monetization, databases, touch gameplay, and distributed hosting are future work. Only Neon Arena is playable.
-- Explicitly leaving a game forfeits winner eligibility but retains the participant's result in history. Disconnects reserve membership for 15 seconds; server restart cannot recover it.
-- The application source was subsequently committed and pushed to GitHub on `main`; remote branch verification succeeded. No public application deployment or cloud snapshot publication is claimed.
-
-The next implementation phase is native Windows acceptance and sustained/network-condition testing, followed by durable authentication and persistence before a public release. See `SECURITY.md` and `PERSISTENCE.md` for that boundary.
+- These are original **2D arcade MVPs**, not licensed ports, commercial 3D recreations, full campaigns, or every variant within each genre. Per-game rules are documented explicitly.
+- Windows, Edge, Firefox, real adverse-network conditions, long-running sessions, public hosting, and fresh cloud-task restoration have not been independently executed here. Chromium automation alone does not establish those outcomes.
+- Rooms, queues, guest identities, roles, scores, history, and rankings are single-process in-memory data and reset on server restart. Persistent accounts, friends, achievements, tournaments, payments, databases, and multi-instance coordination remain future work.
+- Keyboard and mouse are required; touch gameplay is not implemented. Hidden Signal needs at least four independent guests and uses out-of-band discussion; no in-app voice/text chat is included.
+- Playwright's managed browser download was previously blocked by cloud network policy. The installed system Chromium was used with an explicit executable override; Windows can use the normal Playwright install command.
+- Vite reports its standard large-chunk warning for the on-demand Phaser bundle (~1.23 MB minified / 339 KB gzip) and two upstream Zod comment-annotation warnings. Builds succeed; warnings were not hidden.
+- Source publication to GitHub, the saved cloud configuration draft, cloud snapshot publication, and public application deployment are separate operations. No cloud snapshot publication or public application deployment is claimed.

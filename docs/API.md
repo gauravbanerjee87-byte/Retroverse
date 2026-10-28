@@ -4,14 +4,14 @@ Development base: `http://localhost:3001`. Browser development requests use Vite
 
 ## HTTP endpoints
 
-| Method and path                  | Purpose                                                                                |
-| -------------------------------- | -------------------------------------------------------------------------------------- |
-| `GET /api/health`                | `{ "status": "ok", "protocol": 1 }`; 503 while stopping                                |
-| `GET /api/stats`                 | `{ "onlinePlayers": number, "rooms": number, "queuedPlayers": number }`                |
-| `GET /api/leaderboard`           | `{ "entries": LeaderboardEntry[] }`, at most 100 entries, sorted by wins then kills    |
-| `GET /api/history?playerId=<id>` | `{ "matches": MatchRecord[] }`, at most 50 recent results, optionally filtered by UUID |
+| Method and path                                | Purpose                                                                                                             |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/health`                              | `{ "status": "ok", "protocol": 1 }`; 503 while stopping                                                             |
+| `GET /api/stats`                               | `{ "onlinePlayers": number, "rooms": number, "queuedPlayers": number }`                                             |
+| `GET /api/leaderboard?gameId=<id>`             | `{ "entries": LeaderboardEntry[] }`, at most 100 entries, sorted by wins then aggregate score; optional game filter |
+| `GET /api/history?playerId=<uuid>&gameId=<id>` | `{ "matches": MatchRecord[] }`, at most 50 recent results; either/both filters optional                             |
 
-These public prototype statistics do not authenticate an account and must not be treated as proof of ownership. Display names are public labels. History and leaderboard data disappear on restart. No endpoint accepts a client-written score. Public history responses redact the private room code to an empty string; current room members still receive their invitation in their room view. Unknown API paths return 404; unsupported HTTP methods return 405; excessive API requests return 429.
+These public prototype statistics do not authenticate an account and must not be treated as proof of ownership. Display names are public labels. History and leaderboard data disappear on restart. Unknown game filters return 400. The legacy leaderboard field `kills` aggregates the game score, so it is not literally knockouts outside Prism Skirmish; compare scores within a game. No endpoint accepts a client-written score. Public history responses redact the private room code to an empty string; current room members still receive their invitation in their room view. Unknown API paths return 404; unsupported HTTP methods return 405; excessive API requests return 429.
 
 ## WebSocket endpoint
 
@@ -27,36 +27,51 @@ A successful `welcome` includes `playerId`, `name`, `token`, `version`, and `res
 
 ## Client messages
 
-| Type           | Required data and behavior                                                          |
-| -------------- | ----------------------------------------------------------------------------------- |
-| `hello`        | `version: 1`, valid `name`; optional 64-character hex `token`                       |
-| `create`       | `capacity` integer 2–8; creates private room                                        |
-| `join`         | `code`: 12 uppercase hexadecimal characters                                         |
-| `leave`        | Remove current membership                                                           |
-| `ready`        | `ready`: boolean; waiting-room members only                                         |
-| `start`        | Host-only; private room with at least two ready participants                        |
-| `rematch`      | Host-only; completed room returns to waiting                                        |
-| `queue`        | `gameId: "neon-arena"`, `mode: "deathmatch"`                                        |
-| `cancel_queue` | Remove caller from public queue                                                     |
-| `input`        | `input` object with monotonic `seq`, `up`, `down`, `left`, `right`, `angle`, `fire` |
-| `ping`         | Numeric `at` timestamp, echoed in `pong`                                            |
+| Type           | Required data and behavior                                                                         |
+| -------------- | -------------------------------------------------------------------------------------------------- |
+| `hello`        | `version: 1`, valid `name`; optional 64-character hex `token`                                      |
+| `create`       | Optional `gameId` and `capacity`; game-specific bounds enforced, default game `neon-arena`         |
+| `join`         | `code`: 12 uppercase hexadecimal characters                                                        |
+| `leave`        | Remove current membership                                                                          |
+| `ready`        | `ready`: boolean; waiting-room members only                                                        |
+| `start`        | Host-only; selected game minimum, all current participants ready/connected                         |
+| `rematch`      | Host-only; completed room returns to waiting                                                       |
+| `queue`        | Known `gameId`; `mode: "deathmatch"` for `neon-arena`, `"arcade"` for every other game             |
+| `cancel_queue` | Remove caller from public queue                                                                    |
+| `input`        | `input` with monotonic `seq`, directions, `angle`, `fire`, optional `targetX`, `targetY`, `choice` |
+| `ping`         | Numeric `at` timestamp, echoed in `pong`                                                           |
 
-Names contain 2–20 Unicode letters/numbers, spaces, underscores, or hyphens. Input directions and fire are booleans. Aim is a finite angle between `-2π` and `2π`. Sequence numbers are nonnegative safe integers. Repeated or stale input sequences do not advance simulation authority. Room and queue operations act on the server's session identity, not a supplied player ID.
+Names contain 2–20 Unicode letters/numbers, spaces, underscores, or hyphens. Input directions and fire are booleans. Aim is a finite angle between `-2π` and `2π`. Optional pointer targets are finite world coordinates (`targetX` 0–960, `targetY` 0–600). Optional `choice` is an integer 0–15, interpreted by the selected game: for example token indices or meeting/vote actions. The server still checks legal turn, phase, target, and action; passing schema validation alone does not authorize a move. Sequence numbers are nonnegative safe integers. Repeated or stale input sequences do not advance simulation authority. Room and queue operations act on the server's session identity, not a supplied player ID.
 
 ## Server messages
 
-| Type              | Content                                                                     |
-| ----------------- | --------------------------------------------------------------------------- |
-| `welcome`         | Issued identity and resume result                                           |
-| `room`            | Authoritative room view, members, host, ready flags, status, optional match |
-| `state`           | Authoritative match snapshot                                                |
-| `finished`        | Final room view and immutable match record                                  |
-| `left`            | Membership was removed                                                      |
-| `queued`          | Current queue position                                                      |
-| `queue_cancelled` | Queue removal confirmed                                                     |
-| `pong`            | Echoed `at` and `serverTime`                                                |
-| `error`           | Safe `code` and user-facing `message`                                       |
+| Type              | Content                                                                          |
+| ----------------- | -------------------------------------------------------------------------------- |
+| `secret`          | Private role/instructions for this guest only; never part of the public snapshot |
+| `welcome`         | Issued identity and resume result                                                |
+| `room`            | Authoritative room view, members, host, ready flags, status, optional match      |
+| `state`           | Authoritative match snapshot                                                     |
+| `finished`        | Final room view and immutable match record                                       |
+| `left`            | Membership was removed                                                           |
+| `queued`          | Current queue position                                                           |
+| `queue_cancelled` | Queue removal confirmed                                                          |
+| `pong`            | Echoed `at` and `serverTime`                                                     |
+| `error`           | Safe `code` and user-facing `message`                                            |
 
-Room membership changes appear as updated `room` rosters; there are no separate `player_joined`/`player_left` wire messages. A `state` carries tick, player positions/angles/health/scores/last accepted sequence, live projectiles, recent kill events, timing, and winner IDs. Snapshot cadence is lower than simulation cadence; see [MULTIPLAYER.md](MULTIPLAYER.md). Do not send forged health, position, damage, winner, or score fields: the schema and simulation do not accept them.
+Room membership changes appear as updated `room` rosters; there are no separate `player_joined`/`player_left` wire messages. A `state` carries `gameId`, tick, player positions/angles/health/scores/last accepted sequence, live projectiles, recent kill events, timing, winner IDs, typed world `objects`, and live `info`. The latter includes `label`, `message`, optional `phase`, `turnId`, `round`, `goal`, and team labels. Rooms and history records carry their `gameId` too. The original stable ID `neon-arena` now displays as Prism Skirmish; display names are not protocol identifiers. Snapshot cadence is lower than simulation cadence; see [MULTIPLAYER.md](MULTIPLAYER.md). Do not send forged health, position, damage, winner, or score fields: the schema and simulation do not accept them.
+
+Room examples:
+
+```json
+{ "type": "create", "gameId": "homebound-dice", "capacity": 4 }
+```
+
+```json
+{ "type": "queue", "gameId": "hidden-signal", "mode": "arcade" }
+```
+
+A `join` carries only its code; the server resolves its game. Quick matching never substitutes a different game to fill a queue. The catalogue is the canonical list of game IDs and bounds; Hidden Signal requires 4–8, most games require at least two, and two-player/table limits are enforced server-side.
 
 Limits, idle cleanup, backpressure, and error behavior are documented in [SECURITY.md](SECURITY.md). The protocol is an MVP contract; changes must update shared schemas, client, server, and tests together.
+
+Valid input packets already in flight when a match finishes are ignored for existing room members. Finished state is immutable; waiting-room and nonmember input still fails authorization/lifecycle checks, and all payload and rate limits remain enforced.

@@ -54,15 +54,16 @@ The frontend development server rebuilds changed React code. The backend watcher
 
 ## 5. Test multiplayer manually
 
-1. Use a normal browser window for player one and a private/InPrivate window or another browser for player two. Do not duplicate one live guest session into two clients.
-2. Choose distinct display names. Open Neon Arena and create a private room.
-3. Copy the invitation and open it in the second browser, or enter the room code.
-4. Both players choose Ready; the host starts the match.
-5. Move with WASD or arrow keys. Aim using the mouse and hold left click to shoot. Confirm movement, damage, respawn, score, timer, results, and rematch in both browsers.
-6. For public matchmaking, leave the room, choose Quick Match in each browser, and wait for the pair to start.
-7. Reload one participant to exercise reconnect within the grace period. Restarting the server invalidates all guest sessions.
+1. Use a normal window for player one and an InPrivate/private window or another browser for player two. Do not duplicate one live guest session into two clients.
+2. Choose distinct display names. Open a playable title from the library, read its instructions, and create its private room. Most titles need two guests; Hidden Signal needs four independent guests.
+3. Open the invitation in the other browser(s), or enter the code. The code joins that room's selected game automatically.
+4. Everyone chooses Ready, then the host starts. Check that both/all clients show the selected game's board/world, live rules, turn/phase where appropriate, and synchronized results.
+5. Follow game-specific inputs. Most use WASD/arrows and click/Space; dice token selection and social votes use visible action buttons, pool/golf aim from the ball and use pointer distance for power, and falling blocks use Up to rotate/Down to soft drop. See [GAME_CATALOGUE.md](GAME_CATALOGUE.md).
+6. To exercise combat, choose **Prism Skirmish**: move with WASD/arrows, aim with the mouse, hold left click to fire, and verify damage, respawn, score, timer, results, and rematch. Its stable internal ID remains `neon-arena`.
+7. For public matching, leave the room and choose the **same game** in every browser. Two guests normally start a match; Hidden Signal waits for four. Different games never satisfy one another's queue.
+8. Reload a participant within the disconnect grace period. Restarting the server invalidates all guest sessions and rooms. Check per-game history/leaderboard filters after completing a match.
 
-Gameplay needs keyboard and mouse. Mobile users can browse and manage rooms, but touch gameplay is not implemented.
+Gameplay supports desktop keyboard/mouse. Mobile users can browse and manage rooms; no touch-gameplay support is claimed. Escape opens local settings and stops local input but does not pause a multiplayer match.
 
 ## 6. Run automated checks
 

@@ -10,6 +10,7 @@ import {
 import {
   CATEGORIES,
   GAMES,
+  GAME_COLLECTIONS,
   type GameDefinition,
   type LeaderboardEntry,
   type MatchRecord,
@@ -29,7 +30,47 @@ function useRoute() {
   }, []);
   return route;
 }
-function useAPI<T>(url: string) {
+function getGame(id?: string) {
+  return GAMES.find((game) => game.id === id) || GAMES.find((game) => game.id === 'neon-arena')!;
+}
+function selectedGame(requested?: string) {
+  return getGame(requested || localStorage.getItem('retroverse.selectedGame') || 'neon-arena');
+}
+function selectGame(id: string) {
+  localStorage.setItem('retroverse.selectedGame', id);
+}
+function GameSelect({
+  value,
+  onChange,
+  disabled = false,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label>
+      Game
+      <select
+        aria-label="Game"
+        value={value}
+        onChange={(event) => {
+          selectGame(event.target.value);
+          onChange(event.target.value);
+        }}
+        disabled={disabled}
+      >
+        {GAMES.map((game) => (
+          <option key={game.id} value={game.id}>
+            {game.name}
+            {game.priority === 'high' ? ' · Motorcycle combat' : ''}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+function useAPI<T>(url: string | null) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
@@ -37,6 +78,7 @@ function useAPI<T>(url: string) {
     const controller = new AbortController();
     setData(null);
     setError('');
+    if (!url) return () => controller.abort();
     fetch(url, { signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error('The server could not load this data.');
@@ -135,18 +177,18 @@ function GameCard({ game }: { game: GameDefinition }) {
         <span className={`status-tag ${game.status}`}>
           {game.status === 'playable' ? 'PLAYABLE NOW' : 'IN THE PIPELINE'}
         </span>
-        {game.featured && <span className="featured-tag">✦ ORIGINAL</span>}
+        {game.priority === 'high' ? (
+          <span className="featured-tag priority-tag">★ HIGH PRIORITY</span>
+        ) : (
+          game.featured && <span className="featured-tag">✦ ORIGINAL</span>
+        )}
       </a>
       <div className="card-body">
         <span className="card-genre">{game.genre}</span>
         <h3>
           <a href={`#/game/${game.id}`}>{game.name}</a>
         </h3>
-        <p>
-          {game.status === 'playable'
-            ? 'Fast rounds. Bright lights. Friendly rivalries.'
-            : game.description}
-        </p>
+        <p>{game.description}</p>
         <div className="card-bottom">
           <span>
             <Icon type="users" />
@@ -185,7 +227,7 @@ function Home() {
           </p>
           <div className="hero-actions">
             <ButtonLink to="/game/neon-arena">
-              <Icon type="game" /> Play Neon Arena <Icon type="arrow" />
+              <Icon type="game" /> Play Prism Skirmish <Icon type="arrow" />
             </ButtonLink>
             <ButtonLink to="/library" secondary>
               Explore the arcade
@@ -210,9 +252,9 @@ function Home() {
             <span className="live-dot" />
             <div>
               <small>STEP INTO THE SPOTLIGHT</small>
-              <strong>NEON ARENA</strong>
+              <strong>PRISM SKIRMISH</strong>
             </div>
-            <a href="#/game/neon-arena" aria-label="Discover Neon Arena">
+            <a href="#/game/neon-arena" aria-label="Discover Prism Skirmish">
               <Icon type="arrow" />
             </a>
           </div>
@@ -242,13 +284,15 @@ function Home() {
           </a>
         </div>
         <div className="game-grid">
-          {GAMES.map((game) => (
-            <GameCard key={game.id} game={game} />
-          ))}
+          {GAMES.filter((game) => game.featured)
+            .sort((a, b) => Number(b.priority === 'high') - Number(a.priority === 'high'))
+            .map((game) => (
+              <GameCard key={game.id} game={game} />
+            ))}
         </div>
         <p className="honest-note">
-          One original game to play today. More ideas in the pipeline — clearly marked until they’re
-          ready.
+          25 original 2D multiplayer games. From motorcycle combat to turn-based tables — pick your
+          next round.
         </p>
       </section>
       <section className="friends-banner">
@@ -315,6 +359,7 @@ function Library() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All games');
   const [multi, setMulti] = useState(false);
+  const [collection, setCollection] = useState('All collections');
   const [players, setPlayers] = useState('any');
   const [sort, setSort] = useState('featured');
   const recent = recentGames();
@@ -322,6 +367,7 @@ function Library() {
     (g) =>
       (!search || `${g.name} ${g.description}`.toLowerCase().includes(search.toLowerCase())) &&
       (category === 'All games' || g.genre === category) &&
+      (collection === 'All collections' || g.collection === collection) &&
       (!multi || g.multiplayer) &&
       (players === 'any' || (Number(players) >= g.minPlayers && Number(players) <= g.maxPlayers)),
   ).sort((a, b) =>
@@ -330,7 +376,8 @@ function Library() {
       : sort === 'recent'
         ? (recent.indexOf(a.id) === -1 ? 99 : recent.indexOf(a.id)) -
           (recent.indexOf(b.id) === -1 ? 99 : recent.indexOf(b.id))
-        : Number(b.featured) - Number(a.featured),
+        : Number(b.priority === 'high') - Number(a.priority === 'high') ||
+          Number(b.featured) - Number(a.featured),
   );
   return (
     <section className="section page">
@@ -371,6 +418,19 @@ function Library() {
         ))}
       </div>
       <div className="filter-extras">
+        <label>
+          Collection
+          <select
+            aria-label="Collection"
+            value={collection}
+            onChange={(event) => setCollection(event.target.value)}
+          >
+            <option>All collections</option>
+            {GAME_COLLECTIONS.map((item) => (
+              <option key={item}>{item}</option>
+            ))}
+          </select>
+        </label>
         <label className="checkbox">
           <input type="checkbox" checked={multi} onChange={(e) => setMulti(e.target.checked)} />{' '}
           Multiplayer only
@@ -432,16 +492,16 @@ function Details({ id }: { id: string }) {
           {game.status === 'playable' ? (
             <>
               <div className="stack-actions">
-                <ButtonLink to="/matchmaking">
+                <ButtonLink to={`/matchmaking?game=${game.id}`}>
                   <Icon type="bolt" /> Quick match
                 </ButtonLink>
-                <ButtonLink to="/room" secondary>
+                <ButtonLink to={`/room?game=${game.id}`} secondary>
                   Create or join a room <Icon type="users" />
                 </ButtonLink>
               </div>
               <p className="honest-note">
-                Requires 2 players, a keyboard, and a mouse. No bots. Invite a friend or wait for
-                another guest in matchmaking.
+                {game.minPlayers}–{game.maxPlayers} players · {game.controls.join(' + ')} · Original
+                2D browser rules. Invite friends or find a public match.
               </p>
             </>
           ) : (
@@ -462,7 +522,7 @@ function Details({ id }: { id: string }) {
             </div>
             <div className="control-row">
               <kbd>MOUSE</kbd>
-              <span>Aim · hold left click to fire</span>
+              <span>Aim · click or Space for the primary action</span>
             </div>
             <div className="control-row">
               <kbd>ESC</kbd>
@@ -470,7 +530,7 @@ function Details({ id }: { id: string }) {
             </div>
           </article>
           <article className="panel">
-            <h2>Make every shot count</h2>
+            <h2>How to play</h2>
             <ul className="instruction-list">
               {game.instructions.map((i) => (
                 <li key={i}>{i}</li>
@@ -485,25 +545,30 @@ function Details({ id }: { id: string }) {
     </section>
   );
 }
-function RoomPage() {
+function RoomPage({ requestedGame }: { requestedGame?: string }) {
   const view = useSyncExternalStore(network.subscribe, network.snapshot);
   const [code, setCode] = useState(
     new URLSearchParams(location.search).get('room')?.toUpperCase() || '',
   );
-  const [capacity, setCapacity] = useState(8);
+  const [gameId, setGameId] = useState(() => selectedGame(requestedGame).id);
+  const game = getGame(view.room?.gameId || gameId);
+  const [capacity, setCapacity] = useState(() => selectedGame(requestedGame).maxPlayers);
   const [copied, setCopied] = useState('');
   const room = view.room;
   const connected = view.status === 'connected';
-  function join(e: FormEvent) {
-    e.preventDefault();
-    if (network.send({ type: 'join', code: code.trim().toUpperCase() })) {
+  function join(event: FormEvent) {
+    event.preventDefault();
+    if (network.send({ type: 'join', code: code.trim().toUpperCase() }))
       history.replaceState(null, '', `${location.pathname}${location.hash}`);
-    }
+  }
+  function changeGame(id: string) {
+    setGameId(id);
+    setCapacity(getGame(id).maxPlayers);
   }
   if (room?.status === 'playing' || room?.status === 'finished')
     return (
-      <Suspense fallback={<div className="empty">Loading Neon Arena…</div>}>
-        <Arena />
+      <Suspense fallback={<div className="empty">Loading {game.name}…</div>}>
+        <Arena key={room.code + game.id} />
       </Suspense>
     );
   if (!room)
@@ -512,27 +577,37 @@ function RoomPage() {
         <PageIntro
           eyebrow="YOUR CREW. YOUR RULES."
           title="Meet in the arcade"
-          text="Set up a private arena or enter an invitation from a friend."
+          text="Choose an original game, create a private room, and send an invitation."
         />
         <div className="info-grid">
           <form
             className="panel"
-            onSubmit={(e) => {
-              e.preventDefault();
-              network.send({ type: 'create', capacity });
+            onSubmit={(event) => {
+              event.preventDefault();
+              network.send({ type: 'create', gameId, capacity });
             }}
           >
             <span className="panel-icon">
               <Icon type="users" />
             </span>
             <h2>Start something good</h2>
-            <p>Create a private Neon Arena lobby. Share your invite with 1–7 friends.</p>
+            <GameSelect value={gameId} onChange={changeGame} />
+            <p>
+              {game.name} · {game.minPlayers}–{game.maxPlayers} players · {game.genre}
+            </p>
             <label>
               Room capacity
-              <select value={capacity} onChange={(e) => setCapacity(Number(e.target.value))}>
-                {[2, 3, 4, 5, 6, 7, 8].map((n) => (
-                  <option key={n} value={n}>
-                    {n} players
+              <select
+                aria-label="Room capacity"
+                value={capacity}
+                onChange={(event) => setCapacity(Number(event.target.value))}
+              >
+                {Array.from(
+                  { length: game.maxPlayers - game.minPlayers + 1 },
+                  (_, index) => index + game.minPlayers,
+                ).map((count) => (
+                  <option key={count} value={count}>
+                    {count} players
                   </option>
                 ))}
               </select>
@@ -546,14 +621,14 @@ function RoomPage() {
               <Icon type="game" />
             </span>
             <h2>Got an invitation?</h2>
-            <p>A room code is your way in. Ask your host for the 12-character code.</p>
+            <p>Enter your host’s 12-character room code. Your invitation selects the game.</p>
             <label>
               Room code
               <input
                 placeholder="A1B2C3D4E5F6"
                 autoComplete="off"
                 value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                onChange={(event) => setCode(event.target.value.toUpperCase())}
                 minLength={12}
                 maxLength={12}
                 pattern="[A-Fa-f0-9]{12}"
@@ -571,13 +646,15 @@ function RoomPage() {
         </p>
       </section>
     );
-  const me = room.players.find((p) => p.id === view.playerId);
-  const isHost = room.hostId === view.playerId;
-  const canStart = room.players.length >= 2 && room.players.every((p) => p.ready && p.connected);
+  const me = room.players.find((player) => player.id === view.playerId),
+    isHost = room.hostId === view.playerId;
+  const canStart =
+    room.players.length >= game.minPlayers &&
+    room.players.every((player) => player.ready && player.connected);
   return (
     <section className="section page narrow">
       <PageIntro
-        eyebrow="PRIVATE NEON ARENA LOBBY"
+        eyebrow={`${game.name.toUpperCase()} / PRIVATE LOBBY`}
         title="The gang’s almost here"
         text="Share the invite, ready up, and let the good games begin."
       />
@@ -590,27 +667,32 @@ function RoomPage() {
             </span>
           </div>
           <ul className="roster">
-            {room.players.map((p, i) => (
-              <li key={p.id}>
-                <span className={`avatar avatar-${i % 4}`}>{p.name.slice(0, 2).toUpperCase()}</span>
+            {room.players.map((player, index) => (
+              <li key={player.id}>
+                <span className={`avatar avatar-${index % 4}`}>
+                  {player.name.slice(0, 2).toUpperCase()}
+                </span>
                 <div>
                   <strong>
-                    {p.name}
-                    {p.id === view.playerId && ' (you)'}
+                    {player.name}
+                    {player.id === view.playerId && ' (you)'}
                   </strong>
                   <small>
-                    {p.id === room.hostId ? 'HOST' : 'PLAYER'}
-                    {!p.connected && ' · Reconnecting'}
+                    {player.id === room.hostId ? 'HOST' : 'PLAYER'}
+                    {!player.connected && ' · Reconnecting'}
                   </small>
                 </div>
-                <span className={p.ready ? 'ready-label' : 'muted'}>
-                  {p.ready ? 'Ready' : 'Not ready'}
+                <span className={player.ready ? 'ready-label' : 'muted'}>
+                  {player.ready ? 'Ready' : 'Not ready'}
                 </span>
               </li>
             ))}
           </ul>
-          {room.players.length < 2 && (
-            <p className="notice">Invite at least one friend to start a match.</p>
+          {room.players.length < game.minPlayers && (
+            <p className="notice">
+              {game.name} needs at least {game.minPlayers} players. Invite{' '}
+              {game.minPlayers - room.players.length} more to start.
+            </p>
           )}
           <div className="lobby-actions">
             <button
@@ -630,10 +712,17 @@ function RoomPage() {
               </button>
             )}
           </div>
-          {isHost && !canStart && (
-            <p className="muted">Everyone must be connected and ready before the host can start.</p>
+          {!canStart && (
+            <p className="muted">
+              At least {game.minPlayers} guests must be connected, and everyone must be ready.
+            </p>
           )}
-          {!isHost && <p className="muted">Your host will start once everyone is ready.</p>}
+          <h3>Before you play</h3>
+          <ul className="instruction-list">
+            {game.instructions.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
         </div>
         <aside className="panel invite-panel">
           <span className="eyebrow">THE SECRET HANDSHAKE</span>
@@ -655,7 +744,7 @@ function RoomPage() {
               navigator.clipboard
                 .writeText(url.toString())
                 .then(() => setCopied('Invitation copied!'))
-                .catch(() => setCopied(`Copy this code: ${room.code}`));
+                .catch(() => setCopied(`Invitation: ${url.toString()}`));
             }}
           >
             Copy invite link
@@ -664,9 +753,11 @@ function RoomPage() {
             {copied}
           </span>
           <hr />
-          <p>Neon Arena · Deathmatch</p>
+          <p>
+            {game.name} · {game.modes.join(', ')}
+          </p>
           <small className="muted">
-            Keyboard + mouse required. Rooms and guest sessions are temporary.
+            {game.controls.join(' + ')}. Rooms and guest sessions are temporary.
           </small>
           <button className="text-button danger" onClick={() => network.send({ type: 'leave' })}>
             Leave room
@@ -676,15 +767,17 @@ function RoomPage() {
     </section>
   );
 }
-function Matchmaking() {
+function Matchmaking({ requestedGame }: { requestedGame?: string }) {
   const view = useSyncExternalStore(network.subscribe, network.snapshot);
+  const [gameId, setGameId] = useState(() => selectedGame(requestedGame).id);
+  const game = getGame(gameId);
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     if (view.queued === null) {
       setElapsed(0);
       return;
     }
-    const timer = setInterval(() => setElapsed((v) => v + 1), 1000);
+    const timer = setInterval(() => setElapsed((value) => value + 1), 1000);
     return () => clearInterval(timer);
   }, [view.queued]);
   return (
@@ -692,19 +785,22 @@ function Matchmaking() {
       <PageIntro
         eyebrow="NEW RIVALS. SAME GOOD ENERGY."
         title="Find your next match"
-        text="Join a fair, first-in, first-out queue for Neon Arena. Two connected guests start a round."
+        text="Choose your game. The server pairs compatible players in a first-in, first-out queue."
       />
       <div className="matchmaking-panel panel">
+        <GameSelect value={gameId} onChange={setGameId} disabled={view.queued !== null} />
         <div className={`queue-symbol ${view.queued !== null ? 'searching' : ''}`}>
           <Icon type="bolt" />
         </div>
         <h2>
-          {view.queued !== null ? 'Finding your next rival…' : 'A little friendly competition?'}
+          {view.queued !== null
+            ? `Finding players for ${game.name}…`
+            : 'A little friendly competition?'}
         </h2>
         <p>
           {view.queued !== null
             ? `Waiting ${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')} · Queue position ${view.queued}`
-            : 'Neon Arena · 2 players · Deathmatch'}
+            : `${game.name} · ${game.minPlayers} players · ${game.modes.join(', ')}`}
         </p>
         {view.queued !== null ? (
           <>
@@ -715,7 +811,8 @@ function Matchmaking() {
               Cancel search
             </button>
             <p className="muted">
-              A match starts automatically when another guest joins. There are no bots.
+              Starts automatically when {game.minPlayers} compatible guests are connected. Invite
+              friends to the same game queue.
             </p>
           </>
         ) : (
@@ -724,7 +821,11 @@ function Matchmaking() {
               className="button"
               disabled={view.status !== 'connected' || Boolean(view.room)}
               onClick={() =>
-                network.send({ type: 'queue', gameId: 'neon-arena', mode: 'deathmatch' })
+                network.send({
+                  type: 'queue',
+                  gameId,
+                  mode: gameId === 'neon-arena' ? 'deathmatch' : 'arcade',
+                })
               }
             >
               Find match <Icon type="arrow" />
@@ -735,14 +836,14 @@ function Matchmaking() {
               </p>
             ) : (
               <p className="muted">
-                Prefer a familiar face? <a href="#/room">Create a private room</a>.
+                Prefer a familiar face? <a href={`#/room?game=${gameId}`}>Create a private room</a>.
               </p>
             )}
           </>
         )}
         {elapsed >= 60 && (
           <p className="notice">
-            It’s quiet right now. You can keep waiting or invite a friend into the queue.
+            No compatible group yet. Keep waiting, switch games after cancelling, or invite friends.
           </p>
         )}
       </div>
@@ -757,7 +858,7 @@ function ResultsTable({ records, playerId }: { records: MatchRecord[]; playerId?
           <tr>
             <th>Match</th>
             <th>Result</th>
-            <th>Knockouts</th>
+            <th>Score</th>
             <th>Played</th>
           </tr>
         </thead>
@@ -767,7 +868,7 @@ function ResultsTable({ records, playerId }: { records: MatchRecord[]; playerId?
             return (
               <tr key={r.id}>
                 <td>
-                  Neon Arena
+                  {getGame(r.gameId).name}
                   <small>
                     {r.players.length} players · {r.roomCode}
                   </small>
@@ -781,7 +882,12 @@ function ResultsTable({ records, playerId }: { records: MatchRecord[]; playerId?
                         .map((id) => r.players.find((p) => p.id === id)?.name)
                         .join(', ') || 'Draw'}
                 </td>
-                <td>{p?.score ?? r.players.reduce((s, p) => s + p.score, 0)}</td>
+                <td>
+                  {r.gameId === 'orbit-putt'
+                    ? Math.abs(p?.score ?? r.players.reduce((s, p) => s + p.score, 0))
+                    : (p?.score ?? r.players.reduce((s, p) => s + p.score, 0))}
+                  {r.gameId === 'orbit-putt' && ' strokes'}
+                </td>
                 <td>{new Date(r.endedAt).toLocaleString()}</td>
               </tr>
             );
@@ -794,14 +900,11 @@ function ResultsTable({ records, playerId }: { records: MatchRecord[]; playerId?
 function PlayerProfile({ historyOnly = false }: { historyOnly?: boolean }) {
   const view = useSyncExternalStore(network.subscribe, network.snapshot);
   const { data, error, reload } = useAPI<MatchRecord[] | { matches: MatchRecord[] }>(
-    `/api/history?playerId=${encodeURIComponent(view.playerId || 'pending-guest')}`,
+    view.playerId ? `/api/history?playerId=${encodeURIComponent(view.playerId)}` : null,
   );
   const records = data ? (Array.isArray(data) ? data : data.matches) : [];
   const wins = records.filter((r) => r.winnerIds.includes(view.playerId)).length;
-  const kills = records.reduce(
-    (n, r) => n + (r.players.find((p) => p.id === view.playerId)?.score || 0),
-    0,
-  );
+  const gamesPlayed = new Set(records.map((record) => record.gameId || 'neon-arena')).size;
   return (
     <section className="section page">
       <PageIntro
@@ -821,8 +924,8 @@ function PlayerProfile({ historyOnly = false }: { historyOnly?: boolean }) {
               <strong>{wins}</strong>
             </article>
             <article className="panel">
-              <span>Knockouts</span>
-              <strong>{kills}</strong>
+              <span>Games explored</span>
+              <strong>{gamesPlayed}</strong>
             </article>
           </div>
           <div className="notice">
@@ -848,20 +951,21 @@ function PlayerProfile({ historyOnly = false }: { historyOnly?: boolean }) {
         />
       ) : (
         <Empty title="A fresh start">
-          Play your first Neon Arena match to write a little arcade history.
+          Finish a match in any game to write a little arcade history.
         </Empty>
       )}
       <div className="stack-actions">
         <ButtonLink to="/game/neon-arena">
-          Play Neon Arena <Icon type="arrow" />
+          Play Prism Skirmish <Icon type="arrow" />
         </ButtonLink>
       </div>
     </section>
   );
 }
 function Leaderboards() {
+  const [gameId, setGameId] = useState('all');
   const { data, error, reload } = useAPI<LeaderboardEntry[] | { entries: LeaderboardEntry[] }>(
-    '/api/leaderboard',
+    gameId === 'all' ? '/api/leaderboard' : `/api/leaderboard?gameId=${encodeURIComponent(gameId)}`,
   );
   const entries = data ? (Array.isArray(data) ? data : data.entries) : [];
   return (
@@ -869,8 +973,23 @@ function Leaderboards() {
       <PageIntro
         eyebrow="A LITTLE BRAGGING IS ALLOWED"
         title="The high-score crowd"
-        text="Neon Arena results from this server’s current run. Guest scores are temporary, with no skill rating or global ranking."
+        text="All-game results from this server’s current run, ranked by wins. Scores use different game rules and are not directly comparable. Guest records reset on restart."
       />
+      <label className="leaderboard-game-filter">
+        Leaderboard game
+        <select
+          aria-label="Leaderboard game"
+          value={gameId}
+          onChange={(event) => setGameId(event.target.value)}
+        >
+          <option value="all">All games · wins</option>
+          {GAMES.map((game) => (
+            <option key={game.id} value={game.id}>
+              {game.name}
+            </option>
+          ))}
+        </select>
+      </label>
       {error ? (
         <ErrorBox message={error} retry={reload} />
       ) : !data ? (
@@ -883,7 +1002,7 @@ function Leaderboards() {
                 <th>Rank</th>
                 <th>Player</th>
                 <th>Wins</th>
-                <th>Knockouts</th>
+                <th>Score</th>
                 <th>Matches</th>
               </tr>
             </thead>
@@ -893,7 +1012,7 @@ function Leaderboards() {
                   <td className="rank">{String(i + 1).padStart(2, '0')}</td>
                   <td>{p.name}</td>
                   <td>{p.wins}</td>
-                  <td>{p.kills}</td>
+                  <td>{gameId === 'orbit-putt' ? `${Math.abs(p.kills)} strokes` : p.kills}</td>
                   <td>{p.matches}</td>
                 </tr>
               ))}
@@ -998,7 +1117,9 @@ function NotFound() {
   );
 }
 export default function App() {
-  const route = useRoute();
+  const rawRoute = useRoute();
+  const [route, query = ''] = rawRoute.split('?');
+  const requestedGame = new URLSearchParams(query).get('game') || undefined;
   const view = useSyncExternalStore(network.subscribe, network.snapshot);
   const [menu, setMenu] = useState(false);
   useEffect(() => {
@@ -1013,8 +1134,9 @@ export default function App() {
   if (route === '/') content = <Home />;
   else if (route === '/library') content = <Library />;
   else if (route.startsWith('/game/')) content = <Details id={route.slice(6)} />;
-  else if (route === '/room') content = <RoomPage />;
-  else if (route === '/matchmaking') content = <Matchmaking />;
+  else if (route === '/room') content = <RoomPage key={rawRoute} requestedGame={requestedGame} />;
+  else if (route === '/matchmaking')
+    content = <Matchmaking key={rawRoute} requestedGame={requestedGame} />;
   else if (route === '/profile') content = <PlayerProfile />;
   else if (route === '/history') content = <PlayerProfile historyOnly />;
   else if (route === '/leaderboards') content = <Leaderboards />;
