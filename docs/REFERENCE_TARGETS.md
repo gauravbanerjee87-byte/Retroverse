@@ -28,7 +28,11 @@ No numeric patch version is asserted without evidence from an identified referen
 
 Kart racing, dice board play, pool, bomb arenas, obstacle parties, social deduction, falling blocks, grid snake, marble matching, paddle play, maze survival, platform racing, cell growth, continuous snake arenas, and mini golf are genre descriptions rather than uniquely identified commercial titles. They do not determine a single latest patch or exact visual reference. Each needs an agreed reference game/build or its own explicit visual/rule specification. Prism Skirmish is the original flagship, previously displayed as Neon Arena; it also needs an agreed visual target for any new fidelity standard.
 
-## Required reference package
+## Public-reference-first research
+
+Start from public release documentation, gameplay footage, screenshots, manuals, and technical references. Do not require the user to upload archives or prepare a 25-game manifest before researching. Use documented baseline defaults where reasonable, keep uncertain versions explicit, and ask only for a specific unresolved input that blocks implementation. [PUBLIC_REFERENCE_RESEARCH.md](PUBLIC_REFERENCE_RESEARCH.md) records accessed sources, findings, practical defaults, and remaining gaps.
+
+Actual asset/source import is a separate step. If an exact implementation needs files or permissions not available publicly, identify those concrete materials at that point rather than making them a blanket research prerequisite.
 
 For each target, record:
 
