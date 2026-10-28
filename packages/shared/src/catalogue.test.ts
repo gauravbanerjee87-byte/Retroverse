@@ -10,9 +10,10 @@ describe('requested original game catalogue', () => {
     expect(GAMES.filter((game) => game.status === 'planned')).toHaveLength(0);
   });
 
-  it('gives the requested motorcycle combat racer the sole high priority', () => {
+  it('gives all 25 games equal high priority', () => {
     const prioritized = GAMES.filter((game) => game.priority === 'high');
-    expect(prioritized.map((game) => game.id)).toEqual(['asphalt-rivals']);
+    expect(prioritized).toHaveLength(25);
+    expect(GAMES.every((game) => game.fidelity === 'prototype')).toBe(true);
     expect(prioritized[0]).toMatchObject({
       name: 'Asphalt Rivals',
       genre: 'Racing',

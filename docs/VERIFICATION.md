@@ -2,6 +2,12 @@
 
 Observed on **28 October 2026** in the Linux cloud workspace, with Node **24.19.0**, npm **11.9.0**, and system Chromium **154**. This report supersedes the original single-game checkpoint. The catalogue now contains 25 original, compact 2D multiplayer games; each has an authoritative simulation and a matching Phaser rendering/input path. See [GAME_CATALOGUE.md](GAME_CATALOGUE.md) for the exact implemented rules and limitations.
 
+## Revised fidelity scope
+
+The later requirement is exact reference fidelity, with all 25 games equally prioritized and the latest patches of the named original titles. **No game is reference-verified.** Current registry entries explicitly record `fidelity: prototype`; their playability checks below do not demonstrate replica fidelity. Reference editions/builds and usable assets remain outstanding; see [REFERENCE_TARGETS.md](REFERENCE_TARGETS.md).
+
+For this scope/label update, strict type checking, lint, 16 catalogue/protocol tests, the production build, and direct Chromium checks of all 25 prototype badges, equal-priority presentation, fidelity notice, and selector labels passed. No page exceptions occurred. The full 151-test and 29-browser results below describe the preceding mechanics checkpoint; that full matrix was not rerun for this metadata/presentation update.
+
 ## Executed checks
 
 | Check                                                                    | Observed result                                                       |

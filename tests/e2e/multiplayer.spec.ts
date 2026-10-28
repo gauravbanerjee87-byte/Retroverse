@@ -26,7 +26,7 @@ test('home, full library search, original names, and mobile navigation', async (
   await expect(page.getByRole('heading', { name: 'Prism Skirmish', exact: true })).toBeVisible();
   await page.getByRole('searchbox').fill('Night Circuit');
   await expect(page.getByRole('heading', { name: 'Night Circuit', exact: true })).toBeVisible();
-  await expect(page.getByText('PLAYABLE NOW', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('PLAYABLE PROTOTYPE', { exact: true }).first()).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/settings');
   await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible();

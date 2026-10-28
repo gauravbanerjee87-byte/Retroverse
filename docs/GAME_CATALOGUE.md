@@ -34,7 +34,7 @@ RetroVerse contains 25 original, server-authoritative **2D arcade implementation
 | 24  | **Orbit Putt**        | `orbit-putt`        | 2–8     | Arcade     |
 | 25  | **Prism Skirmish**    | `neon-arena`        | 2–8     | Deathmatch |
 
-Asphalt Rivals remains the highest-priority motorcycle-combat title. Prism Skirmish keeps the stable internal ID `neon-arena`; invitations, room state, history filters, saved recent IDs, and protocol messages use stable IDs rather than display names.
+All 25 games have equal high priority. The current implementations are playable prototypes, with no reference-verified replicas yet. See [REFERENCE_TARGETS.md](REFERENCE_TARGETS.md) for the revised fidelity requirement. Prism Skirmish keeps the stable internal ID `neon-arena`; invitations, room state, history filters, saved recent IDs, and protocol messages use stable IDs rather than display names.
 
 ## Shared controls and presentation
 

@@ -63,7 +63,7 @@ function GameSelect({
         {GAMES.map((game) => (
           <option key={game.id} value={game.id}>
             {game.name}
-            {game.priority === 'high' ? ' · Motorcycle combat' : ''}
+            {game.id === 'asphalt-rivals' ? ' · Motorcycle combat' : ''}
           </option>
         ))}
       </select>
@@ -175,13 +175,13 @@ function GameCard({ game }: { game: GameDefinition }) {
       <a href={`#/game/${game.id}`} className="art-link" aria-label={`View ${game.name}`}>
         <Artwork kind={game.artwork} />
         <span className={`status-tag ${game.status}`}>
-          {game.status === 'playable' ? 'PLAYABLE NOW' : 'IN THE PIPELINE'}
+          {game.status === 'playable'
+            ? game.fidelity === 'prototype'
+              ? 'PLAYABLE PROTOTYPE'
+              : 'PLAYABLE NOW'
+            : 'IN THE PIPELINE'}
         </span>
-        {game.priority === 'high' ? (
-          <span className="featured-tag priority-tag">★ HIGH PRIORITY</span>
-        ) : (
-          game.featured && <span className="featured-tag">✦ ORIGINAL</span>
-        )}
+        {game.featured && <span className="featured-tag">✦ ORIGINAL</span>}
       </a>
       <div className="card-body">
         <span className="card-genre">{game.genre}</span>
@@ -487,7 +487,13 @@ function Details({ id }: { id: string }) {
             </span>
             <span>{game.engine}</span>
             <span>v{game.version}</span>
-            <span>{game.status === 'playable' ? 'Playable now' : 'Planned concept'}</span>
+            <span>
+              {game.status === 'playable'
+                ? game.fidelity === 'prototype'
+                  ? 'Playable prototype'
+                  : 'Reference verified'
+                : 'Planned concept'}
+            </span>
           </div>
           {game.status === 'playable' ? (
             <>
@@ -500,8 +506,9 @@ function Details({ id }: { id: string }) {
                 </ButtonLink>
               </div>
               <p className="honest-note">
-                {game.minPlayers}–{game.maxPlayers} players · {game.controls.join(' + ')} · Original
-                2D browser rules. Invite friends or find a public match.
+                {game.minPlayers}–{game.maxPlayers} players · {game.controls.join(' + ')} · Current
+                2D prototype rules. Visual fidelity to the requested reference has not been
+                verified.
               </p>
             </>
           ) : (

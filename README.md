@@ -1,8 +1,10 @@
 # RetroVerse
 
-An original browser arcade with **25 playable, server-authoritative 2D multiplayer games**. Race motorcycles in **Asphalt Rivals**, compete across puzzle and party games, or jump into **Prism Skirmish** combat. Create a private room, invite independent guests, ready up, and start a match. Public matchmaking groups compatible guests by game, with two players for most games and four for Hidden Signal. Profiles, match history, and leaderboards reflect this server session; they are not persistent accounts.
+An original browser arcade with **25 playable, server-authoritative 2D multiplayer prototypes**. Race motorcycles in **Asphalt Rivals**, compete across puzzle and party games, or jump into **Prism Skirmish** combat. Create a private room, invite independent guests, ready up, and start a match. Public matchmaking groups compatible guests by game, with two players for most games and four for Hidden Signal. Profiles, match history, and leaderboards reflect this server session; they are not persistent accounts.
 
 RetroVerse uses React, TypeScript, Vite, Phaser 3, Node.js, `ws`, Zod, Vitest, and Playwright. It needs no database, Docker, WSL, paid API, or cloud service for local development. The catalogue connects 25 original titles to authoritative 2D game engines across racing, action, puzzle, sports, board, and social play. Artwork is procedural/vector-based and sound effects are synthesized. These are compact original arcade games, not licensed ports or recreations of commercial 3D games. Read [the game catalogue](docs/GAME_CATALOGUE.md) for each game's rules, controls, player count, and implementation limits.
+
+The requested next standard is faithful recreation of the specifically named titles at their latest patches, with all 25 games equally prioritized. **The current prototypes do not meet that visual-fidelity standard.** See [reference targets and outstanding inputs](docs/REFERENCE_TARGETS.md).
 
 ## Quick start on Windows 11
 
